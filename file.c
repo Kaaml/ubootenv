@@ -11,7 +11,8 @@ extern struct inode *mfile_inode;
 
 int uboot_dir_open(struct inode *dir, struct file* dfile )
 {
-	pr_debug("uboot dir open!!!");
+	const char* file_name = dfile->f_path.dentry->d_name.name;
+	pr_debug("[UBOOT DBG]: uboot dir open [%s]", file_name);
 	return dcache_dir_open(dir, dfile);	
 }
 
@@ -27,7 +28,8 @@ int uboot_readdir(struct file *file, struct dir_context *ctx)
 
 static int uboot_fill_file(struct seq_file *m, void *v )
 {
-	pr_debug("fill file %p", m->private);
+	const char* file_name = m->file->f_path.dentry->d_name.name;	
+	pr_debug("[UBOOT DBG]: fill file dataptr: %p file_name: [%s]", m->private, file_name);
 	seq_printf(m, "%s\n", (char*)m->private);
 	return 0;
 }
@@ -36,6 +38,14 @@ static int uboot_file_open(struct inode *inode, struct file *file )
 {
 	pr_debug("uboo_file_open %p", inode->i_private );
 	return single_open(file, uboot_fill_file, inode->i_private );
+}
+
+static ssize_t uboot_file_write(struct file *file, const char __user* u, size_t len, loff_t *ua )
+{
+	const char* file_name = file->f_path.dentry->d_name.name;
+//	pr_debug( "[UBOOT DBG]: File write file: [%s], file_private: %p", file_name, file->f_inode->i_private );
+	pr_debug( "[UBOOT DBG]: File content: [%s], len: %lu", (char*) u, len );
+	return len;
 }
 
 const struct file_operations uboot_dir_operations = {
@@ -50,7 +60,7 @@ const struct file_operations uboot_file_operations = {
 	.open		= uboot_file_open,
 	.release	= single_release,
 	.read		= seq_read,
-//	.write		= seq_write,
+	.write		= uboot_file_write,
 //	.read_iter 	= generic_file_read_iter,
 //	.write_iter = generic_file_write_iter,
 	.fsync		= noop_fsync,

@@ -116,7 +116,7 @@ static int init_files(char *data, unsigned size, struct inode * parent )
 		int len = strlen(data_cpy );
 		char* l = strpbrk( data_cpy, "=\0" );	
 		*l++ = '\0';
-		pr_debug("l= %s\t %s", l, data_cpy );
+		//pr_debug("l= %s\t %s", l, data_cpy );
 		//char *file_n = data_cpy;
 		
 		mk_file(parent, data_cpy, l );
@@ -154,6 +154,20 @@ static void uboot_put_super(struct super_block *sb)
 static struct super_operations const uboot_super_ops = {
       .put_super = uboot_put_super,
 };
+
+
+static int parse_options(struct super_block *sb, void *data )
+{
+	unsigned int offset;
+	pr_debug("[UBOOT]: Uboot options: %s\nOffset: %x", (char*) data, offset );
+	if( data == NULL ){
+		return -1;
+	}
+	sscanf(data, "offset=%x", &offset );
+	
+
+	return 0;
+}
 
 //function to create superblock of ubootfs
 static int uboot_fill_sb(struct super_block *sb, void *data, int silent)
@@ -197,6 +211,9 @@ static int uboot_fill_sb(struct super_block *sb, void *data, int silent)
 	sb_min_blocksize(sb, uboot_size);
 	blocks = uboot_size / sb->s_blocksize;
 	pr_debug("[UBOOT DBG]: Uboot_size: %d, block_size: %lu, blocks_num: %d", uboot_size, sb->s_blocksize, blocks);
+
+	//parse arugments
+	parse_options(sb, data );
 
 	bh = kzalloc(sizeof(struct buffer_head)* blocks, GFP_KERNEL );
 	if( bh == NULL ){
@@ -251,6 +268,7 @@ static struct dentry *uboot_mount(struct file_system_type *type, int flags,
                                       char const *dev, void *data)
 {
 	struct dentry *const entry = mount_bdev(type, flags, dev, data, uboot_fill_sb );
+	pr_debug( "flags: %d, data: %s", flags, (char*)data );
 
 	if (IS_ERR(entry))
 		pr_err("failed to mount ubootfs\n");
